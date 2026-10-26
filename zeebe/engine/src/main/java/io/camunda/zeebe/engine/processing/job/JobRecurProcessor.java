@@ -70,6 +70,18 @@ public class JobRecurProcessor implements TypedRecordProcessor<JobRecord> {
         case ERROR_THROWN:
           textState = "it is in error state";
           break;
+<<<<<<< HEAD:zeebe/engine/src/main/java/io/camunda/zeebe/engine/processing/job/JobRecurProcessor.java
+=======
+        case WAITING_FOR_SECRET_RESOLUTION:
+          textState = "it is waiting for a secret to be resolved";
+          break;
+        case SUSPENDED:
+          textState = "its process instance is suspended";
+          break;
+        case FAILED:
+          textState = "its backoff has not ended yet";
+          break;
+>>>>>>> e8383537 (fix: name the unfinished backoff when rejecting a job recurrence):zeebe/engine/src/main/java/io/camunda/zeebe/engine/processing/job/JobRecurAfterBackoffProcessor.java
         default:
           textState = "no such job was found";
           break;
