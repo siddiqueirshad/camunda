@@ -70,6 +70,18 @@ public class JobRecurAfterBackoffProcessor implements TypedRecordProcessor<JobRe
         case ERROR_THROWN:
           textState = "it is in error state";
           break;
+<<<<<<< HEAD
+=======
+        case WAITING_FOR_SECRET_RESOLUTION:
+          textState = "it is waiting for a secret to be resolved";
+          break;
+        case SUSPENDED:
+          textState = "its process instance is suspended";
+          break;
+        case FAILED:
+          textState = "its backoff has not ended yet";
+          break;
+>>>>>>> e8383537 (fix: name the unfinished backoff when rejecting a job recurrence)
         default:
           textState = "no such job was found";
           break;
