@@ -6,16 +6,96 @@
  * except in compliance with the Camunda License 1.0.
  */
 
+import {useEffect, useMemo, useRef, useState} from 'react';
+import type {FormApi} from 'final-form';
 import {useTranslation} from 'react-i18next';
+import {useNavigate} from '@tanstack/react-router';
+import {Form} from 'react-final-form';
 import {Heading, PageLayout, Separator, Text} from '@camunda/design-system';
-import {cn} from '#/shared/cn';
 import {FilterSidebar} from '#/operate/shared/FilterSidebar/shadcn.components/FilterSidebar';
 import {InstancesList} from '#/operate/shared/InstancesList/shadcn.components/InstancesList';
+import {AutoSubmit} from '#/operate/shared/AutoSubmit/AutoSubmit';
+import {cn} from '#/shared/cn';
+import type {ProcessesSearch} from '../processesFilter';
+import type {OptionalFilter, OptionalFilterValues} from './optionalFilters';
+import {OptionalFiltersFormGroup} from './OptionalFiltersFormGroup';
+import {ProcessFilters} from './ProcessFilters';
+
+type FilterFormValues = OptionalFilterValues & {tenantId?: string};
+
+type Props = {
+	search: ProcessesSearch;
+};
 
 const panelClassName = cn('h-full overflow-auto bg-neutral-background p-4');
 
-const Processes: React.FC = () => {
+const Processes: React.FC<Props> = ({search}) => {
 	const {t} = useTranslation();
+	const navigate = useNavigate();
+	const [visibleFilters, setVisibleFilters] = useState<OptionalFilter[]>([]);
+	const preservingFormRef = useRef<FormApi<FilterFormValues> | null>(null);
+	const {
+		processInstanceKey,
+		parentProcessInstanceKey,
+		businessId,
+		batchOperationKey,
+		errorMessage,
+		hasRetriesLeft,
+		startDateFrom,
+		startDateTo,
+		endDateFrom,
+		endDateTo,
+	} = search;
+	const optionalFilterValues = useMemo<OptionalFilterValues>(
+		() => ({
+			processInstanceKey,
+			parentProcessInstanceKey,
+			businessId,
+			batchOperationKey,
+			errorMessage,
+			hasRetriesLeft,
+			startDateFrom,
+			startDateTo,
+			endDateFrom,
+			endDateTo,
+		}),
+		[
+			processInstanceKey,
+			parentProcessInstanceKey,
+			businessId,
+			batchOperationKey,
+			errorMessage,
+			hasRetriesLeft,
+			startDateFrom,
+			startDateTo,
+			endDateFrom,
+			endDateTo,
+		],
+	);
+	const filterFormValues = useMemo<FilterFormValues>(
+		() => ({tenantId: search.tenantId, ...optionalFilterValues}),
+		[search.tenantId, optionalFilterValues],
+	);
+	const hasOptionalFilters =
+		search.tenantId !== undefined ||
+		search.incidentErrorHashCode !== undefined ||
+		Object.values(optionalFilterValues).some((value) => value !== undefined);
+	const isResetDisabled =
+		search.active &&
+		search.incidents &&
+		search.suspended &&
+		!search.completed &&
+		!search.canceled &&
+		!search.process &&
+		search.version === undefined &&
+		search.elementId === undefined &&
+		!hasOptionalFilters &&
+		visibleFilters.length === 0;
+
+	useEffect(() => {
+		preservingFormRef.current?.setConfig('keepDirtyOnReinitialize', false);
+		preservingFormRef.current = null;
+	}, [optionalFilterValues]);
 
 	return (
 		<PageLayout id="main-content" tabIndex={-1} padding="none" width="full" className="h-full">
@@ -25,11 +105,82 @@ const Processes: React.FC = () => {
 			<InstancesList
 				type="process"
 				leftPanel={
-					<FilterSidebar localStorageKey="isProcessesFiltersCollapsed" isResetButtonDisabled>
-						<Text as="p" className="text-sm text-neutral-foreground-subtle">
-							{t('operate.processes.scaffold.filtersPanelPlaceholder')}
-						</Text>
-					</FilterSidebar>
+					<Form<FilterFormValues>
+						onSubmit={(values) => {
+							void navigate({
+								to: '.',
+								search: (prev) => ({
+									...prev,
+									...((values.tenantId || undefined) !== prev.tenantId
+										? {process: undefined, version: undefined, elementId: undefined}
+										: {}),
+									tenantId: values.tenantId || undefined,
+									processInstanceKey: values.processInstanceKey || undefined,
+									parentProcessInstanceKey: values.parentProcessInstanceKey || undefined,
+									businessId: values.businessId || undefined,
+									batchOperationKey: values.batchOperationKey || undefined,
+									errorMessage: values.errorMessage || undefined,
+									incidentErrorHashCode:
+										values.errorMessage === prev.errorMessage ? prev.incidentErrorHashCode : undefined,
+									hasRetriesLeft: values.hasRetriesLeft || undefined,
+									startDateFrom: values.startDateFrom || undefined,
+									startDateTo: values.startDateTo || undefined,
+									endDateFrom: values.endDateFrom || undefined,
+									endDateTo: values.endDateTo || undefined,
+								}),
+							});
+						}}
+						initialValues={filterFormValues}
+					>
+						{({handleSubmit, form}) => (
+							<form onSubmit={handleSubmit} className="flex h-full min-h-0">
+								<AutoSubmit fieldsToSkipTimeout={['tenantId', 'hasRetriesLeft']} />
+								<FilterSidebar
+									localStorageKey="isProcessesFiltersCollapsed"
+									isResetButtonDisabled={isResetDisabled}
+									onResetClick={() => {
+										form.reset();
+										setVisibleFilters([]);
+										void navigate({to: '.', search: {}});
+									}}
+								>
+									<div className="flex flex-col gap-8">
+										<ProcessFilters
+											process={search.process}
+											version={search.version}
+											elementId={search.elementId}
+											tenantId={search.tenantId}
+											active={search.active}
+											incidents={search.incidents}
+											suspended={search.suspended}
+											completed={search.completed}
+											canceled={search.canceled}
+										/>
+										<Separator />
+										<OptionalFiltersFormGroup
+											filters={optionalFilterValues}
+											visibleFilters={visibleFilters}
+											onVisibleFilterChange={setVisibleFilters}
+											onFilterClear={(keys) => {
+												if (
+													Object.entries(optionalFilterValues).some(
+														([key, value]) => keys.includes(key) && value !== undefined,
+													)
+												) {
+													form.setConfig('keepDirtyOnReinitialize', true);
+													preservingFormRef.current = form;
+												}
+												void navigate({
+													to: '.',
+													search: (prev) => ({...prev, ...Object.fromEntries(keys.map((key) => [key, undefined]))}),
+												});
+											}}
+										/>
+									</div>
+								</FilterSidebar>
+							</form>
+						)}
+					</Form>
 				}
 				topPanel={
 					<div className={panelClassName}>
