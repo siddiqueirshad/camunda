@@ -21,6 +21,7 @@ import {
 	type SortingConfig,
 } from '@camunda/design-system';
 import type {User} from '@camunda/camunda-api-zod-schemas/8.11';
+import {RouterRowLink} from '#/admin/modules/shared/RouterRowLink';
 import {useDebouncedUrlFilter} from '#/shared/hooks/useDebouncedUrlFilter';
 import {CreateUserModal} from '#/admin/modules/users/CreateUserModal';
 import {EditUserModal} from '#/admin/modules/users/EditUserModal';
@@ -38,10 +39,9 @@ type AdminUsersPageProps = {
 	totalItems: number;
 	search: UsersSearch;
 	onSearchChange: (next: Partial<UsersSearch>) => void;
-	onOpenUser: (user: User) => void;
 };
 
-const AdminUsersPage: React.FC<AdminUsersPageProps> = ({users, totalItems, search, onSearchChange, onOpenUser}) => {
+const AdminUsersPage: React.FC<AdminUsersPageProps> = ({users, totalItems, search, onSearchChange}) => {
 	const {t} = useTranslation();
 	const appliedSearchTerm = search.search ?? '';
 	const [searchDraft, setSearchDraft] = useDebouncedUrlFilter(appliedSearchTerm, (search) =>
@@ -154,7 +154,8 @@ const AdminUsersPage: React.FC<AdminUsersPageProps> = ({users, totalItems, searc
 						columns={columns}
 						data={users}
 						getRowId={(user) => user.username}
-						onRowClick={onOpenUser}
+						rowHref={(user) => `/admin/users/${encodeURIComponent(user.username)}`}
+						linkComponent={RouterRowLink}
 						rowActions={rowActions}
 						sorting={{manual: true, sortState, onSortingChange: handleSortingChange}}
 						pagination={{

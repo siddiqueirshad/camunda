@@ -21,6 +21,7 @@ import {
 	type SortingConfig,
 } from '@camunda/design-system';
 import type {Group} from '@camunda/camunda-api-zod-schemas/8.11';
+import {RouterRowLink} from '#/admin/modules/shared/RouterRowLink';
 import {useDebouncedUrlFilter} from '#/shared/hooks/useDebouncedUrlFilter';
 import {AddGroupModal} from '#/admin/modules/groups/AddGroupModal';
 import {EditGroupModal} from '#/admin/modules/groups/EditGroupModal';
@@ -38,10 +39,9 @@ type AdminGroupsPageProps = {
 	totalItems: number;
 	search: GroupsSearch;
 	onSearchChange: (next: Partial<GroupsSearch>) => void;
-	onOpenGroup: (group: Group) => void;
 };
 
-const AdminGroupsPage: React.FC<AdminGroupsPageProps> = ({groups, totalItems, search, onSearchChange, onOpenGroup}) => {
+const AdminGroupsPage: React.FC<AdminGroupsPageProps> = ({groups, totalItems, search, onSearchChange}) => {
 	const {t} = useTranslation();
 	const appliedSearchTerm = search.search ?? '';
 	const [searchDraft, setSearchDraft] = useDebouncedUrlFilter(appliedSearchTerm, (search) =>
@@ -153,7 +153,8 @@ const AdminGroupsPage: React.FC<AdminGroupsPageProps> = ({groups, totalItems, se
 						columns={columns}
 						data={groups}
 						getRowId={(group) => group.groupId}
-						onRowClick={onOpenGroup}
+						rowHref={(group) => `/admin/groups/${encodeURIComponent(group.groupId)}`}
+						linkComponent={RouterRowLink}
 						rowActions={rowActions}
 						sorting={{manual: true, sortState, onSortingChange: handleSortingChange}}
 						pagination={{
