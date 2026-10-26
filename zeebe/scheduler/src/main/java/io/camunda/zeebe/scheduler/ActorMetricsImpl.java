@@ -82,7 +82,9 @@ final class ActorMetricsImpl implements ActorMetrics {
   @Override
   public void observeJobSchedulingLatency(
       final long waitTimeNs, final SubscriptionType subscriptionType) {
-    schedulingLatency.get(subscriptionType).record(waitTimeNs, TimeUnit.NANOSECONDS);
+    // Micrometer rejects negative amounts with a warning; clamp so that a bad timestamp can't
+    // spam the logs.
+    schedulingLatency.get(subscriptionType).record(Math.max(0, waitTimeNs), TimeUnit.NANOSECONDS);
   }
 
   record ActorMetricsScopedEnabled(
